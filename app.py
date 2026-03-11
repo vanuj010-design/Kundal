@@ -2,13 +2,55 @@ from flask import Flask, request, jsonify, render_template, redirect, session, f
 from flask_cors import CORS
 import bcrypt, random, time, os
 from werkzeug.utils import secure_filename
-
-from db import get_db
+import mysql.connector
+from db import get_db, init_tables
 from email_otp import send_otp
+from flask import abort
+
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = "retech_secret_key"
 CORS(app)
+
+
+
+
+# ================= ADMIN IP SECURITY =================
+
+# Put YOUR real public IP here (example only)
+ALLOWED_ADMIN_IPS = {
+    ip.strip()
+    for ip in os.environ.get("ADMIN_ALLOWED_IPS", "").split(",")
+    if ip.strip()
+}
+
+@app.before_request
+def hide_admin_from_unauthorized_ips():
+    if request.path.startswith("/admin"):
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+        if ip:
+            ip = ip.split(",")[0].strip()
+
+        if ip not in ALLOWED_ADMIN_IPS:
+            abort(404)  # completely hide admin
+
+
+
+@app.route("/smtp-debug")
+def smtp_debug():
+    return {
+        "SMTP_HOST": os.environ.get("SMTP_HOST"),
+        "SMTP_PORT": os.environ.get("SMTP_PORT"),
+        "SMTP_EMAIL": os.environ.get("SMTP_EMAIL"),
+        "FROM_EMAIL": os.environ.get("FROM_EMAIL"),
+        "SMTP_PASSWORD_SET": bool(os.environ.get("SMTP_PASSWORD"))
+    }
+
+ 
+with app.app_context():
+    init_tables()
+
+    
 
 # ================= ADMIN AUTH HELPER =================
 from functools import wraps
@@ -21,6 +63,31 @@ def admin_required(func):
             return redirect("/admin/login")
         return func(*args, **kwargs)
     return wrapper
+
+
+
+# ---------------- ROUTES ----------------
+
+
+@app.route("/db-test")
+def db_test():
+    try:
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("SELECT DATABASE()")
+        result = cur.fetchone()
+        cur.close()
+        db.close()
+
+        return f"MySQL Connected ✅ Database: {result[0]}"
+
+    except mysql.connector.Error as e:
+        return f"MySQL Error ❌ {e}"
+
+    except Exception as e:
+        return f"App Error ❌ {e}"
+
+
 
 
 # ---------------- CONFIG ----------------
@@ -36,8 +103,7 @@ otp_store = {}
 from flask import Flask, render_template, request, session, redirect, jsonify
 import random, time, bcrypt
 
-app = Flask(__name__)
-app.secret_key = "retech_secret"
+
 
 OTP_EXPIRY = 300  # 5 minutes
 change_pwd_otp_store = {}
