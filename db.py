@@ -5,15 +5,23 @@ import os
 # ================= DATABASE CONNECTION =================
 
 
-def get_db():
-    return mysql.connector.connect(
-        host=os.environ.get("MYSQLHOST"),
-        user=os.environ.get("MYSQLUSER"),
-        password=os.environ.get("MYSQLPASSWORD"),
-        database=os.environ.get("MYSQLDATABASE"),
-        port=int(os.environ.get("MYSQLPORT", 3306))
-    )
 
+def get_db():
+    host = os.environ.get("MYSQLHOST")
+    user = os.environ.get("MYSQLUSER")
+    password = os.environ.get("MYSQLPASSWORD")
+    database = os.environ.get("MYSQLDATABASE")
+    port = int(os.environ.get("MYSQLPORT", 3306))
+
+    print("DB HOST:", host)   # helps debug
+
+    return mysql.connector.connect(
+        host=host,
+        user=user,
+        password=password,
+        database=database,
+        port=port
+    )
 
 # ================= CREATE TABLES =================
 
