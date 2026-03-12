@@ -6,22 +6,39 @@ import os
 
 
 
+dbconfig = {
+    "host": os.environ.get("MYSQLHOST"),
+    "port": int(os.environ.get("MYSQLPORT", 3306)),
+    "user": os.environ.get("MYSQLUSER"),
+    "password": os.environ.get("MYSQLPASSWORD"),
+    "database": os.environ.get("MYSQLDATABASE"),
+}
+
+missing = [k for k, v in dbconfig.items() if v is None]
+if missing:
+    raise RuntimeError(f"MySQL ENV vars missing: {missing}")
+
+pool = pooling.MySQLConnectionPool(
+    pool_name="retech_pool",
+    pool_size=10,
+    **dbconfig
+)
+
+
 def get_db():
-    host = os.environ.get("MYSQLHOST")
-    user = os.environ.get("MYSQLUSER")
-    password = os.environ.get("MYSQLPASSWORD")
-    database = os.environ.get("MYSQLDATABASE")
-    port = int(os.environ.get("MYSQLPORT", 3306))
+    return pool.get_connection()
 
-    print("DB HOST:", host)   # helps debug
 
-    return mysql.connector.connect(
-        host=host,
-        user=user,
-        password=password,
-        database=database,
-        port=port
-    )
+@contextmanager
+def db_cursor(dictionary=False):
+    db = get_db()
+    cur = db.cursor(dictionary=dictionary)
+    try:
+        yield cur
+        db.commit()
+    finally:
+        cur.close()
+        db.close()
 
 # ================= CREATE TABLES =================
 
