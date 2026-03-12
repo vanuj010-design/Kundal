@@ -12,6 +12,12 @@ app = Flask(__name__, template_folder="templates")
 app.secret_key = "retech_secret_key"
 CORS(app)
 
+try:
+    with app.app_context():
+        init_tables()
+except Exception as e:
+    print("Database init error:", e))
+
 
 
 
