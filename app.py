@@ -16,7 +16,7 @@ try:
     with app.app_context():
         init_tables()
 except Exception as e:
-    print("Database init error:", e))
+    print("Database init error:", e)
 
 
 
