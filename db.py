@@ -1,6 +1,7 @@
-import mysql.connector
 import os
-
+import mysql.connector
+from mysql.connector import pooling
+from contextlib import contextmanager
 
 # ================= DATABASE CONNECTION =================
 
