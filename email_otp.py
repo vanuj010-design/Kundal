@@ -1,33 +1,36 @@
-import smtplib
-from email.mime.text import MIMEText
+import os
+import requests
 
-SENDER_EMAIL = "vermaalka705@gmail.com"
-APP_PASSWORD = "gpdhqmxgviotfhmy"  # Gmail App Password
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY")
+FROM_EMAIL = os.environ.get("FROM_EMAIL")
 
 def send_otp(receiver_email, otp):
-    msg = MIMEText(f"Your ReTech OTP is {otp}. It is valid for 2 minutes.")
-    msg["Subject"] = "ReTech Account Verification OTP"
-    msg["From"] = SENDER_EMAIL
-    msg["To"] = receiver_email
+    url = "https://api.brevo.com/v3/smtp/email"
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(SENDER_EMAIL, APP_PASSWORD)
-        server.send_message(msg)
+    payload = {
+        "sender": {
+            "email": FROM_EMAIL,
+            "name": "ReTech"
+        },
+        "to": [
+            {"email": receiver_email}
+        ],
+        "subject": "ReTech OTP Verification",
+        "htmlContent": f"""
+            <h3>Your ReTech OTP</h3>
+            <p><strong>{otp}</strong></p>
+            <p>This OTP is valid for 5 minutes.</p>
+        """
+    }
 
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
 
-from email.mime.text import MIMEText
+    response = requests.post(url, json=payload, headers=headers)
 
-ADMIN_EMAIL = "vermaalka705@gmail.com"     # 🔴 your gmail
-APP_PASSWORD = "gpdhqmxgviotfhmy"      # 🔴 Gmail App Password
-
-def send_support_mail(subject, message):
-    msg = MIMEText(message)
-    msg["Subject"] = subject
-    msg["From"] = ADMIN_EMAIL
-    msg["To"] = ADMIN_EMAIL
-
-    server = smtplib.SMTP("smtp.gmail.com", 587)
-    server.starttls()
-    server.login(ADMIN_EMAIL, APP_PASSWORD)
-    server.send_message(msg)
-    server.quit()
+    if response.status_code not in (200, 201):
+        print("BREVO API ERROR:", response.text)
+        raise Exception("Failed to send OTP")
