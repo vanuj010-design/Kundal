@@ -225,6 +225,9 @@ def home():
 
     products = cur.fetchall()
 
+    cur.close()
+    db.close()
+
     return render_template(
         "first.html",
         products=products,
@@ -432,7 +435,11 @@ def verify_otp():
         hashed_password
     ))
 
+
     db.commit()
+
+    cur.close()
+    db.close()
 
     # clear OTP record
     signup_otp_store.pop(email, None)
@@ -464,6 +471,9 @@ def login_api():
         (email,)
     )
     user = cur.fetchone()
+
+    cur.close()
+    db.close()
 
     if not user:
         return jsonify(success=False, message="User not found")
@@ -504,6 +514,9 @@ def profile():
 
         db.commit()
 
+        cur.close()
+        db.close()
+
         # 🔥 Update session name (important for navbar)
         session["user"]["name"] = name
 
@@ -517,6 +530,9 @@ def profile():
     """, (user_id,))
 
     user = cur.fetchone()
+
+    cur.close()
+    db.close()
 
     return render_template("profile.html", user=user)
 
@@ -615,6 +631,9 @@ def product_detail(product_id):
     cur.execute("SELECT * FROM products WHERE id=%s", (product_id,))
     product = cur.fetchone()
 
+    cur.close()
+    db.close()
+
     if not product:
         return "Product not found", 404
 
@@ -642,6 +661,7 @@ def add_to_cart(product_id):
         (product_id,)
     )
     product = cur.fetchone()
+
 
     if not product or product["stock"] <= 0:
         return redirect("/")
@@ -704,6 +724,9 @@ def view_cart():
         WHERE c.user_id=%s
     """, (user_id,))
     items = cur.fetchall()
+
+    cur.close()
+    db.close()
 
     return render_template("cart.html", cart_items=items)
 
@@ -884,6 +907,9 @@ def checkout():
     """, (user_id,))
     address = cur.fetchone()
 
+    cur.close()
+    db.close()
+
     return render_template("checkout.html",
         cart_items=cart_items,
         total=total,
@@ -961,6 +987,9 @@ def place_order():
     cur.execute("DELETE FROM cart WHERE user_id=%s", (user_id,))
     db.commit()
 
+    cur.close()
+    db.close()
+
     return redirect("/orders")
 
 
@@ -981,6 +1010,9 @@ def orders():
         ORDER BY created_at DESC
     """, (user_id,))
     orders = cur.fetchall()
+
+    cur.close()
+    db.close()
 
     return render_template("orders.html", orders=orders)
 
@@ -1013,6 +1045,9 @@ def order_detail(order_id):
         WHERE oi.order_id=%s
     """, (order_id,))
     items = cur.fetchall()
+
+    cur.close()
+    db.close()
 
     return render_template("order_detail.html", order=order, items=items)
 
@@ -1189,6 +1224,7 @@ def admin_dashboard():
     products = cur.fetchall()
 
 
+
     # 4. Cart items (not ordered yet)
     cur.execute("SELECT COUNT(*) AS cart_items FROM cart")
     cart_items = cur.fetchone()["cart_items"]
@@ -1196,6 +1232,9 @@ def admin_dashboard():
     # Products list
     cur.execute("SELECT * FROM products ORDER BY id DESC")
     products = cur.fetchall()
+
+    cur.close()
+    db.close()
 
     return render_template(
         "admin_dashboard.html",
